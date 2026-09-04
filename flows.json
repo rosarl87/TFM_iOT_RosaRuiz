@@ -288,7 +288,7 @@
         "payload": "",
         "payloadType": "date",
         "x": 170,
-        "y": 400,
+        "y": 920,
         "wires": [
             [
                 "f64b447a40972862"
@@ -323,7 +323,7 @@
         "payload": "",
         "payloadType": "date",
         "x": 160,
-        "y": 480,
+        "y": 1000,
         "wires": [
             [
                 "f64b447a40972862"
@@ -354,7 +354,7 @@
         "func": "flow.set('pendingAction', msg.payload);\nmsg.headers = { 'Content-Type': 'application/json' };\nmsg.payload = {\n    grant_type: 'client_credentials',\n    client_id: env.get('SCHUKO_CLIENT_ID'),\n    client_secret: env.get('SCHUKO_CLIENT_SECRET')\n};\nreturn msg;",
         "outputs": 1,
         "x": 420,
-        "y": 440,
+        "y": 960,
         "wires": [
             [
                 "f913eb9408c4864d"
@@ -371,7 +371,7 @@
         "ret": "obj",
         "url": "https://auth-test.simon-cloud.com/oauth/v2/token",
         "x": 680,
-        "y": 440,
+        "y": 960,
         "wires": [
             [
                 "b9cdf1865c912423"
@@ -387,7 +387,7 @@
         "func": "const action = flow.get('pendingAction');\nmsg.headers = {\n    'Authorization': 'Bearer ' + msg.payload.access_token,\n    'Content-Type': 'application/json'\n};\nmsg.payload = { socket: { default: { state: action.state } } };\nmsg.url = 'http://192.168.1.133:8000/api/v1/devices/' + action.deviceId;\nreturn msg;",
         "outputs": 1,
         "x": 440,
-        "y": 500,
+        "y": 1020,
         "wires": [
             [
                 "48a7b8b04520bbc3"
@@ -554,10 +554,10 @@
         "id": "a204c88fb710df32",
         "type": "comment",
         "z": "9e68b77404ffd339",
-        "name": "Caso test 1 - Control switch",
+        "name": "Caso test 3 - Control switch",
         "info": "",
         "x": 140,
-        "y": 340,
+        "y": 860,
         "wires": []
     },
     {
@@ -567,7 +567,7 @@
         "name": "Caso test 2 - Número devices de instalación",
         "info": "",
         "x": 190,
-        "y": 560,
+        "y": 640,
         "wires": []
     },
     {
@@ -588,7 +588,7 @@
         "payload": "",
         "payloadType": "date",
         "x": 190,
-        "y": 640,
+        "y": 720,
         "wires": [
             [
                 "gd02devfnprep01"
@@ -602,8 +602,13 @@
         "name": "Preparar consulta (GET /devices)",
         "func": "// GET /api/v1/devices -> lista de dispositivos de la instalacion.\n// Mismo Basic Auth que el resto de llamadas HTTP (token fijo, confirmado\n// por trafico real de la app). No depende de Environment Variables.\nconst BASIC_TOKEN = 'YWRtaW46ODk5YTgwNzI3ZGExZGYwOGIxNTEzNmE4YTg5OTUwNjMzYjFjODQ0NmQyZjYwZWFlZmUyNTExMWRmZjVmNTg5MQ==';\n\nmsg.headers = {\n    'Authorization': 'Basic ' + BASIC_TOKEN\n};\nmsg.url = 'http://192.168.1.133:8000/api/v1/devices';\nreturn msg;",
         "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
         "x": 480,
-        "y": 640,
+        "y": 720,
         "wires": [
             [
                 "gd03devhttpreq1"
@@ -617,9 +622,17 @@
         "name": "GET /devices",
         "method": "GET",
         "ret": "obj",
+        "paytoqs": "ignore",
         "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
         "x": 700,
-        "y": 640,
+        "y": 720,
         "wires": [
             [
                 "gd04devdebug001",
@@ -636,9 +649,13 @@
         "active": true,
         "tosidebar": true,
         "console": false,
+        "tostatus": false,
         "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
         "x": 950,
-        "y": 600,
+        "y": 680,
         "wires": []
     },
     {
@@ -654,7 +671,7 @@
         "finalize": "",
         "libs": [],
         "x": 520,
-        "y": 720,
+        "y": 800,
         "wires": [
             [
                 "7e9d6b2e47458353"
@@ -673,8 +690,8 @@
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 510,
-        "y": 780,
+        "x": 490,
+        "y": 920,
         "wires": [
             [
                 "runq02execnext"
@@ -687,8 +704,8 @@
         "z": "9e68b77404ffd339",
         "name": "Bateria de pruebas dirigida por datos (cola generica)",
         "info": "Para anadir un caso de prueba nuevo NO hace falta anadir ningun nodo: basta con anadir una entrada al array dentro del nodo 'Cargar cola de pruebas'. Solo hacen falta nodos nuevos cuando el caso requiere una llamada realmente distinta (un endpoint que aun no exista en el flujo), y en ese caso solo una vez, no por cada ejecucion.",
-        "x": 260,
-        "y": 900,
+        "x": 290,
+        "y": 1060,
         "wires": []
     },
     {
@@ -708,8 +725,8 @@
         "topic": "",
         "payload": "",
         "payloadType": "date",
-        "x": 150,
-        "y": 940,
+        "x": 180,
+        "y": 1100,
         "wires": [
             [
                 "runq01bcargacola"
@@ -728,8 +745,8 @@
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 400,
-        "y": 940,
+        "x": 430,
+        "y": 1100,
         "wires": [
             [
                 "runq02execnext"
@@ -743,8 +760,8 @@
         "name": "Ejecutar siguiente caso (runner)",
         "func": "// Nodo generico: saca el siguiente caso de la cola y lo enruta.\n// Se llama a si mismo (via el Switch + el final de cada caso) hasta\n// vaciar la cola. No requiere ningun inject ni nodo nuevo por caso.\nconst cola = flow.get('cola_pruebas') || [];\n\nif (cola.length === 0) {\n    node.status({ fill: 'green', shape: 'dot', text: 'bateria completada' });\n    return null;\n}\n\nconst caso = cola.shift();\nflow.set('cola_pruebas', cola);\nnode.status({ fill: 'blue', shape: 'dot', text: 'ejecutando: ' + caso.tipo + ' (' + cola.length + ' restantes)' });\n\nmsg.tipo = caso.tipo;\nmsg.deviceId = caso.deviceId;\nmsg.state = caso.tipo === 'encender' ? true : caso.tipo === 'apagar' ? false : undefined;\nreturn msg;",
         "outputs": 1,
-        "x": 650,
-        "y": 940,
+        "x": 680,
+        "y": 1100,
         "wires": [
             [
                 "runq03switch01"
@@ -778,8 +795,8 @@
         "checkall": "true",
         "repair": false,
         "outputs": 3,
-        "x": 890,
-        "y": 940,
+        "x": 920,
+        "y": 1100,
         "wires": [
             [
                 "f64b447a40972862"
@@ -790,6 +807,121 @@
             [
                 "gd02devfnprep01"
             ]
+        ]
+    },
+    {
+        "id": "13a1af2cc1cf5fdc",
+        "type": "comment",
+        "z": "9e68b77404ffd339",
+        "name": "Caso test 1 - Número de estancias",
+        "info": "",
+        "x": 160,
+        "y": 420,
+        "wires": []
+    },
+    {
+        "id": "edd98bafa3b5c34c",
+        "type": "inject",
+        "z": "9e68b77404ffd339",
+        "name": "Consultar num. de estancias (GET)",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 190,
+        "y": 500,
+        "wires": [
+            [
+                "a20ecec6bf873f76"
+            ]
+        ]
+    },
+    {
+        "id": "a20ecec6bf873f76",
+        "type": "function",
+        "z": "9e68b77404ffd339",
+        "name": "Preparar consulta (GET /rooms)",
+        "func": "// GET /api/v1/devices -> lista de dispositivos de la instalacion.\n// Mismo Basic Auth que el resto de llamadas HTTP (token fijo, confirmado\n// por trafico real de la app). No depende de Environment Variables.\nconst BASIC_TOKEN = 'YWRtaW46ODk5YTgwNzI3ZGExZGYwOGIxNTEzNmE4YTg5OTUwNjMzYjFjODQ0NmQyZjYwZWFlZmUyNTExMWRmZjVmNTg5MQ==';\n\nmsg.headers = {\n    'Authorization': 'Basic ' + BASIC_TOKEN\n};\nmsg.url = 'http://192.168.1.133:8000/api/v1/rooms';\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 500,
+        "wires": [
+            [
+                "b79a440c0a56e629"
+            ]
+        ]
+    },
+    {
+        "id": "b79a440c0a56e629",
+        "type": "http request",
+        "z": "9e68b77404ffd339",
+        "name": "GET /rooms",
+        "method": "GET",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 690,
+        "y": 500,
+        "wires": [
+            [
+                "950428f0cb30e855",
+                "e7fc4794c772dd9e"
+            ]
+        ]
+    },
+    {
+        "id": "950428f0cb30e855",
+        "type": "debug",
+        "z": "9e68b77404ffd339",
+        "name": "Respuesta GET /rooms",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 950,
+        "y": 460,
+        "wires": []
+    },
+    {
+        "id": "e7fc4794c772dd9e",
+        "type": "function",
+        "z": "9e68b77404ffd339",
+        "name": "Preparar anotacion Grafana (GET dispositivos)",
+        "func": "// Reutiliza el mismo Grafana que el resto de anotaciones: pega aqui la\n// misma GRAFANA_API_KEY que ya tienes puesta en el nodo\n// 'Preparar anotacion Grafana (exito/fallo)' para no duplicar el secreto\n// en dos sitios con valores distintos.\nconst GRAFANA_URL = 'http://localhost:3000';\nconst GRAFANA_API_KEY = 'PON_AQUI_TU_GRAFANA_API_KEY';\n\nconst code = msg.statusCode || 0;\nconst ok = code === 200; // aqui el exito se define simplemente como codigo 200\nconst count = Array.isArray(msg.payload) ? msg.payload.length\n    : (msg.payload && typeof msg.payload.count === 'number') ? msg.payload.count\n    : null;\n\nmsg.headers = {\n    'Content-Type': 'application/json',\n    'Authorization': 'Bearer ' + GRAFANA_API_KEY\n};\nmsg.url = GRAFANA_URL + '/api/annotations';\nmsg.payload = {\n    time: Date.now(),\n    tags: ['simonio', 'command', 'http', 'get_rooms', ok ? 'success' : 'fail'],\n    text: 'GET /rooms -> ' + code + (count !== null ? ' (' + count + ' estancias)' : '') + (ok ? ' (exito)' : ' (fallo)')\n};\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 520,
+        "y": 580,
+        "wires": [
+            []
         ]
     },
     {
