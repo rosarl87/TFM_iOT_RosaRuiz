@@ -895,7 +895,7 @@
         "z": "9e68b77404ffd339",
         "name": "Respuesta GET /rooms",
         "active": true,
-        "tosidebar": true,
+        "tosidebar": false,
         "console": false,
         "tostatus": false,
         "complete": "true",
