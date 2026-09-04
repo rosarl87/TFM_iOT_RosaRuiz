@@ -1,0 +1,383 @@
+[
+    {
+        "id": "a9aa710d27c4f7a6",
+        "type": "tab",
+        "label": "Simon iO - HTTP",
+        "disabled": false,
+        "info": "Flujo de autenticación OAuth2 (client_credentials) contra el entorno de test de Simon iO, y control de un dispositivo (enchufe) mediante PATCH.\n\nAntes de usar, configura las variables de entorno SCHUKO_CLIENT_ID y SCHUKO_CLIENT_SECRET en las propiedades de este flujo (pestaña Environment Variables) o en settings.js."
+    },
+    {
+        "id": "cd61d7d397bb865f",
+        "type": "tab",
+        "label": "Simon iO - MQTT",
+        "disabled": false,
+        "info": "Conexión MQTT/TLS (puerto 8883) contra mqtt-test.simon-cloud.com.\n\nIMPORTANTE: tras importar, abre el nodo de configuración de broker 'Simon iO Test Broker' y rellena a mano el Client ID, Username y Password en las pestañas Connection/Security (no se incluyen en este archivo por seguridad).\n\nEl bloque 'Descubrir topics' se suscribe a # (todos los topics) para identificar el patrón real usado por cada dispositivo — déjalo activo mientras pruebas.\n\nEl bloque 'Control por MQTT' ya usa el topic real descubierto: simon/telemetry/{idGateway}/{deviceId}/update (idGateway = 'e45f01e7626f', visto en 'Descubrir topics' al encender/apagar desde la app oficial). Pendiente de verificar: (1) si idGateway es el mismo para todos tus dispositivos o hay que mapearlo por deviceId, y (2) si publicar en este topic realmente aplica el cambio o el backend lo ignora al venir de un cliente distinto al del dispositivo — pruébalo con 'Descubrir topics' activo para confirmar que el enchufe responde."
+    },
+    {
+        "id": "0dbd34b98ab91934",
+        "type": "mqtt-broker",
+        "name": "Simon iO Test Broker",
+        "broker": "mqtt-test.simon-cloud.com",
+        "port": "8883",
+        "clientid": "0db8b754-06e1-41cd-88c1-776d1794f864",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "tls_simon",
+        "type": "tls-config",
+        "name": "Simon iO Test TLS",
+        "cert": "",
+        "key": "",
+        "ca": "",
+        "certname": "",
+        "keyname": "",
+        "caname": "",
+        "servername": "",
+        "verifyservercert": false
+    },
+    {
+        "id": "mqtt_broker_simon",
+        "type": "mqtt-broker",
+        "name": "Simon iO Test Broker",
+        "broker": "mqtts://mqtt-test.simon-cloud.com",
+        "port": "8883",
+        "tls": "tls_simon",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": true,
+        "protocolVersion": "3",
+        "keepalive": "60",
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "5d3ea3e8892737de",
+        "type": "mqtt-broker",
+        "name": "",
+        "broker": "10.67.1.76",
+        "port": "1884",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": 4,
+        "keepalive": 60,
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "b1de0cbf8713872f",
+        "type": "ui_group",
+        "name": "TolingHomepad",
+        "tab": "7da8cf071c9f0012",
+        "order": 2,
+        "disp": true,
+        "width": 6,
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "997b2cb5708737b6",
+        "type": "ui_group",
+        "name": "Visor",
+        "tab": "7da8cf071c9f0012",
+        "order": 4,
+        "disp": true,
+        "width": 9,
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "eaa927bd3aa94699",
+        "type": "ui_group",
+        "name": "Setup",
+        "tab": "7da8cf071c9f0012",
+        "order": 1,
+        "disp": true,
+        "width": 8,
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "6a0d9c8f0de6aafb",
+        "type": "ui_group",
+        "name": "Control",
+        "tab": "7da8cf071c9f0012",
+        "order": 5,
+        "disp": true,
+        "width": 6,
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "7da8cf071c9f0012",
+        "type": "ui_tab",
+        "name": "HomepadVitoria",
+        "icon": "dashboard",
+        "disabled": false,
+        "hidden": false
+    },
+    {
+        "id": "89438639fe6096e2",
+        "type": "inject",
+        "z": "a9aa710d27c4f7a6",
+        "name": "Encender enchufe (HTTP)",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "payload": "{\"deviceId\":\"3\",\"state\":true}",
+        "payloadType": "json",
+        "x": 180,
+        "y": 100,
+        "wires": [
+            [
+                "24e1cae291495eea"
+            ]
+        ]
+    },
+    {
+        "id": "b641bfaa42fd3fb6",
+        "type": "inject",
+        "z": "a9aa710d27c4f7a6",
+        "name": "Apagar enchufe (HTTP)",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "payload": "{\"deviceId\":\"3\",\"state\":false}",
+        "payloadType": "json",
+        "x": 180,
+        "y": 160,
+        "wires": [
+            [
+                "24e1cae291495eea"
+            ]
+        ]
+    },
+    {
+        "id": "24e1cae291495eea",
+        "type": "function",
+        "z": "a9aa710d27c4f7a6",
+        "name": "Guardar acción y preparar token",
+        "func": "flow.set('pendingAction', msg.payload);\nmsg.headers = { 'Content-Type': 'application/json' };\nmsg.payload = {\n    grant_type: 'client_credentials',\n    client_id: env.get('SCHUKO_CLIENT_ID'),\n    client_secret: env.get('SCHUKO_CLIENT_SECRET')\n};\nreturn msg;",
+        "outputs": 1,
+        "x": 440,
+        "y": 130,
+        "wires": [
+            [
+                "c513951c66e9d497"
+            ]
+        ]
+    },
+    {
+        "id": "c513951c66e9d497",
+        "type": "http request",
+        "z": "a9aa710d27c4f7a6",
+        "name": "POST /oauth/v2/token",
+        "method": "POST",
+        "ret": "obj",
+        "url": "https://auth-test.simon-cloud.com/oauth/v2/token",
+        "x": 700,
+        "y": 130,
+        "wires": [
+            [
+                "125b40aa3603e5b2"
+            ]
+        ]
+    },
+    {
+        "id": "125b40aa3603e5b2",
+        "type": "function",
+        "z": "a9aa710d27c4f7a6",
+        "name": "Preparar llamada al dispositivo",
+        "func": "const action = flow.get('pendingAction');\nmsg.headers = {\n    'Authorization': 'Bearer ' + msg.payload.access_token,\n    'Content-Type': 'application/json'\n};\nmsg.payload = { socket: { default: { state: action.state } } };\nmsg.url = 'http://192.168.1.133:8000/api/v1/devices/' + action.deviceId;\nreturn msg;",
+        "outputs": 1,
+        "x": 460,
+        "y": 220,
+        "wires": [
+            [
+                "425ade1854c26f85"
+            ]
+        ]
+    },
+    {
+        "id": "425ade1854c26f85",
+        "type": "http request",
+        "z": "a9aa710d27c4f7a6",
+        "name": "PATCH /devices/{id}",
+        "method": "PATCH",
+        "ret": "obj",
+        "url": "",
+        "x": 730,
+        "y": 220,
+        "wires": [
+            [
+                "8a265b75bfc3a785"
+            ]
+        ]
+    },
+    {
+        "id": "8a265b75bfc3a785",
+        "type": "debug",
+        "z": "a9aa710d27c4f7a6",
+        "name": "Respuesta HTTP",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "complete": "true",
+        "x": 970,
+        "y": 220,
+        "wires": []
+    },
+    {
+        "id": "1c016bb49c4ab943",
+        "type": "mqtt in",
+        "z": "cd61d7d397bb865f",
+        "name": "Descubrir topics (#)",
+        "topic": "simon/things/e45f01e7626f/#",
+        "qos": "0",
+        "datatype": "auto",
+        "broker": "mqtt_broker_simon",
+        "nl": false,
+        "rap": false,
+        "inputs": 0,
+        "x": 200,
+        "y": 100,
+        "wires": [
+            [
+                "7837ab81f12f37e3"
+            ]
+        ]
+    },
+    {
+        "id": "7837ab81f12f37e3",
+        "type": "debug",
+        "z": "cd61d7d397bb865f",
+        "name": "Topics descubiertos",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "complete": "true",
+        "x": 460,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "7baa837f5799284a",
+        "type": "inject",
+        "z": "cd61d7d397bb865f",
+        "name": "Encender enchufe (MQTT)",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "payload": "{\"deviceId\":\"3\",\"state\":true}",
+        "payloadType": "json",
+        "x": 190,
+        "y": 220,
+        "wires": [
+            [
+                "3bbccd1215f50077"
+            ]
+        ]
+    },
+    {
+        "id": "f9b9f20c812accd2",
+        "type": "inject",
+        "z": "cd61d7d397bb865f",
+        "name": "Apagar enchufe (MQTT)",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "payload": "{\"deviceId\":\"3\",\"state\":false}",
+        "payloadType": "json",
+        "x": 190,
+        "y": 280,
+        "wires": [
+            [
+                "3bbccd1215f50077"
+            ]
+        ]
+    },
+    {
+        "id": "3bbccd1215f50077",
+        "type": "function",
+        "z": "cd61d7d397bb865f",
+        "name": "Preparar topic y payload (real)",
+        "func": "// Topic real descubierto en 'Descubrir topics' (#) al encender/apagar el enchufe\n// desde la app oficial de Simon iO. Es el mismo topic para reportar estado (telemetría)\n// que el que parece usarse para aplicar el cambio:\n//   simon/telemetry/{idGateway}/{deviceId}/update\n//\n// idGateway = 'e45f01e7626f' -> parece el identificador del hub/gateway (formato tipo MAC),\n// NO del enchufe en sí. Si tienes más de un hub, confirma que este ID es el mismo para\n// todos tus dispositivos antes de darlo por fijo; si no, habría que mapear deviceId -> idGateway.\nconst GATEWAY_ID = 'e45f01e7626f';\n\nmsg.topic = 'simon/telemetry/' + GATEWAY_ID + '/' + msg.payload.deviceId + '/update';\nmsg.payload = JSON.stringify({\n    deviceId: msg.payload.deviceId,\n    socket: { default: { state: msg.payload.state } }\n    // Nota: el mensaje capturado también traía un campo \"timestamp\" (34361.916663164),\n    // pero es un contador de uptime interno del dispositivo, no una hora real - no lo\n    // generamos nosotros. Prueba primero sin él; si el backend lo exige, avisa para añadirlo.\n});\nreturn msg;",
+        "outputs": 1,
+        "x": 470,
+        "y": 250,
+        "wires": [
+            [
+                "a60a57cef5e00b25"
+            ]
+        ]
+    },
+    {
+        "id": "a60a57cef5e00b25",
+        "type": "mqtt out",
+        "z": "cd61d7d397bb865f",
+        "name": "Publicar comando",
+        "topic": "",
+        "qos": "0",
+        "retain": "false",
+        "broker": "mqtt_broker_simon",
+        "x": 730,
+        "y": 250,
+        "wires": []
+    }
+]
