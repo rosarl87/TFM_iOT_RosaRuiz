@@ -420,7 +420,11 @@
         "active": true,
         "tosidebar": true,
         "console": false,
+        "tostatus": false,
         "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
         "x": 1010,
         "y": 180,
         "wires": []
