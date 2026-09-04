@@ -1,17 +1,17 @@
 [
     {
-        "id": "a9aa710d27c4f7a6",
+        "id": "9e68b77404ffd339",
         "type": "tab",
         "label": "Simon iO - HTTP",
         "disabled": false,
-        "info": "Flujo de autenticación OAuth2 (client_credentials) contra el entorno de test de Simon iO, y control de un dispositivo (enchufe) mediante PATCH.\n\nAntes de usar, configura las variables de entorno SCHUKO_CLIENT_ID y SCHUKO_CLIENT_SECRET en las propiedades de este flujo (pestaña Environment Variables) o en settings.js."
+        "info": "Control de un dispositivo (enchufe) mediante PATCH.\n\nCAMINO CONFIRMADO (recomendado): 'Preparar llamada (Basic Auth - confirmado)' - se capturó tráfico real de la app oficial de Simon iO (com.simonholding.walia.test) haciendo PATCH /api/v1/devices/{id} con 'Authorization: Basic <token>', body {\"socket\":{\"default\":{\"state\":true/false}}}. El token va fijo en el propio nodo function (no depende de Environment Variables) - trata este archivo como un secreto.\n\nCAMINO ANTIGUO (sin confirmar, desactivado): la cadena OAuth2 (client_credentials) + Bearer token que había antes. Se deja desactivada (nodos en gris) por si hiciera falta para control remoto vía nube en vez de local (usa SCHUKO_CLIENT_ID/SCHUKO_CLIENT_SECRET si la reactivas).\n\nGRAFANA - listado/timeline (anotaciones): tras cada PATCH, 'Preparar anotación Grafana (éxito/fallo)' guarda una anotación en Grafana (sin base de datos externa). Rellena GRAFANA_URL y GRAFANA_API_KEY en ese nodo function (Grafana -> Administration -> Service accounts -> crea uno rol Editor -> genera token). Cada anotación lleva tags 'on'/'off' + 'success'/'fail' + combinado ('on_success' etc.).\n\nGRAFANA - conteos/gráfica de barras (SIN InfluxDB): 'Actualizar contador (sin InfluxDB)' solo incrementa un contador en memoria de Node-RED (contexto global, clave por deviceId+action+resultado). El endpoint 'Endpoint estadísticas' (GET /simonio/stats) expone esos contadores como JSON, por ejemplo: [{\"deviceId\":\"3\",\"action\":\"on\",\"result\":\"success\",\"count\":5}, ...]. En Grafana instala el plugin gratuito 'Infinity' (Administration -> Plugins -> busca 'Infinity') y añádelo como datasource apuntando a http://localhost:1880/simonio/stats (o el host/puerto real de tu Node-RED) - con eso puedes montar un Bar chart/Table sin ninguna base de datos. AVISO: estos contadores se reinician a 0 si reinicias Node-RED, salvo que actives contexto persistente (settings.js -> contextStorage).\n\nCASO TEST 2 (Numero de dispositivos): 'Preparar consulta (GET /devices)' hace GET /api/v1/devices con el mismo Basic Auth que el resto de llamadas. A diferencia del PATCH (donde cualquier codigo < 400 se considera exito), aqui el criterio de exito es simplemente que el codigo de respuesta sea 200. El numero de dispositivos devuelto se incluye en el texto de la anotacion de Grafana; el contador (exito/fallo) se expone igualmente en GET /simonio/stats bajo deviceId 'installation', action 'getDevices'."
     },
     {
-        "id": "cd61d7d397bb865f",
+        "id": "43cc3a58d352a032",
         "type": "tab",
         "label": "Simon iO - MQTT",
         "disabled": false,
-        "info": "Conexión MQTT/TLS (puerto 8883) contra mqtt-test.simon-cloud.com.\n\nIMPORTANTE: tras importar, abre el nodo de configuración de broker 'Simon iO Test Broker' y rellena a mano el Client ID, Username y Password en las pestañas Connection/Security (no se incluyen en este archivo por seguridad).\n\nEl bloque 'Descubrir topics' se suscribe a # (todos los topics) para identificar el patrón real usado por cada dispositivo — déjalo activo mientras pruebas.\n\nEl bloque 'Control por MQTT' ya usa el topic real descubierto: simon/telemetry/{idGateway}/{deviceId}/update (idGateway = 'e45f01e7626f', visto en 'Descubrir topics' al encender/apagar desde la app oficial). Pendiente de verificar: (1) si idGateway es el mismo para todos tus dispositivos o hay que mapearlo por deviceId, y (2) si publicar en este topic realmente aplica el cambio o el backend lo ignora al venir de un cliente distinto al del dispositivo — pruébalo con 'Descubrir topics' activo para confirmar que el enchufe responde."
+        "info": "Conexión MQTT/TLS (puerto 8883) contra mqtt-test.simon-cloud.com.\n\nEl nodo de broker 'Simon iO Test Broker' YA lleva Username/Password de conexión al broker incluidos en este archivo (los mismos que funcionaron en MQTTBox), y el token Basic Auth hacia el gateway va fijo dentro del nodo function 'Preparar topic y payload' (ya no depende de Environment Variables) - trata este JSON como un secreto, no lo compartas ni lo subas a ningún sitio público.\n\nprotocolVersion está en '5' (MQTT5), igual que la conexión de MQTTBox que funcionó.\n\nControl por MQTT: se publica en simon/things/e45f01e7626f/apischuko (topic fijo del gateway) el mismo objeto que usa la API HTTP (path/method/headers/data), con Basic Auth y un response_topic de correlación.\n\nLa confirmación llega por simon/things/e45f01e7626f/gtg/devices/{deviceId}/{id}; 'Confirmación por MQTT' está suscrito a ese patrón para verla.\n\n'Descubrir topics' (#) se deja activo por si aparece algo nuevo o para depurar.\n\nGRAFANA (anotaciones, listado/timeline): 'Telemetría (estado real)' escucha simon/telemetry/e45f01e7626f/+/update y guarda una anotación ENCENDIDO/APAGADO cada vez que cambia el estado real; 'Confirmación por MQTT' también guarda una anotación de éxito/fallo de cada comando MQTT (tags on/off + success/fail + combinado). Rellena GRAFANA_URL y GRAFANA_API_KEY en los nodos 'Preparar anotación Grafana (...)'.\n\nCONTEOS (SIN InfluxDB): 'Actualizar contador (sin InfluxDB)' incrementa, en paralelo a la anotación, el mismo contador en memoria que usa la pestaña HTTP (contexto global) - se lee todo junto desde el endpoint GET /simonio/stats de la pestaña HTTP. No hay nada que configurar aquí para esto.\n\nNota técnica: el deviceId y el 'action' (on/off) del comando MQTT se recuperan de flow context (clave 'mqtt_pending_' + id de correlación), guardado por 'Preparar topic y payload' al publicar - porque la confirmación llega como mensaje nuevo, sin ese dato directamente."
     },
     {
         "id": "0dbd34b98ab91934",
@@ -113,6 +113,14 @@
         "sessionExpiry": ""
     },
     {
+        "id": "7da8cf071c9f0012",
+        "type": "ui_tab",
+        "name": "HomepadVitoria",
+        "icon": "dashboard",
+        "disabled": false,
+        "hidden": false
+    },
+    {
         "id": "b1de0cbf8713872f",
         "type": "ui_group",
         "name": "TolingHomepad",
@@ -157,152 +165,647 @@
         "className": ""
     },
     {
-        "id": "7da8cf071c9f0012",
-        "type": "ui_tab",
-        "name": "HomepadVitoria",
-        "icon": "dashboard",
-        "disabled": false,
-        "hidden": false
+        "id": "c6fe401325731f45",
+        "type": "ui_base",
+        "theme": {
+            "name": "theme-light",
+            "lightTheme": {
+                "default": "#0094CE",
+                "baseColor": "#0094CE",
+                "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif",
+                "edited": false
+            },
+            "darkTheme": {
+                "default": "#097479",
+                "baseColor": "#097479",
+                "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif",
+                "edited": false
+            },
+            "customTheme": {
+                "name": "Untitled Theme 1",
+                "default": "#4B7930",
+                "baseColor": "#4B7930",
+                "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif"
+            },
+            "themeState": {
+                "base-color": {
+                    "default": "#0094CE",
+                    "value": "#0094CE",
+                    "edited": false
+                },
+                "page-titlebar-backgroundColor": {
+                    "value": "#0094CE",
+                    "edited": false
+                },
+                "page-backgroundColor": {
+                    "value": "#fafafa",
+                    "edited": false
+                },
+                "page-sidebar-backgroundColor": {
+                    "value": "#ffffff",
+                    "edited": false
+                },
+                "group-textColor": {
+                    "value": "#1bbfff",
+                    "edited": false
+                },
+                "group-borderColor": {
+                    "value": "#ffffff",
+                    "edited": false
+                },
+                "group-backgroundColor": {
+                    "value": "#ffffff",
+                    "edited": false
+                },
+                "widget-textColor": {
+                    "value": "#111111",
+                    "edited": false
+                },
+                "widget-backgroundColor": {
+                    "value": "#0094ce",
+                    "edited": false
+                },
+                "widget-borderColor": {
+                    "value": "#ffffff",
+                    "edited": false
+                },
+                "base-font": {
+                    "value": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif"
+                }
+            },
+            "angularTheme": {
+                "primary": "indigo",
+                "accents": "blue",
+                "warn": "red",
+                "background": "grey",
+                "palette": "light"
+            }
+        },
+        "site": {
+            "name": "Node-RED Dashboard",
+            "hideToolbar": "false",
+            "allowSwipe": "false",
+            "lockMenu": "false",
+            "allowTempTheme": "true",
+            "dateFormat": "DD/MM/YYYY",
+            "sizes": {
+                "sx": 48,
+                "sy": 48,
+                "gx": 6,
+                "gy": 6,
+                "cx": 6,
+                "cy": 6,
+                "px": 0,
+                "py": 0
+            }
+        }
     },
     {
-        "id": "89438639fe6096e2",
+        "id": "f727eba587777803",
         "type": "inject",
-        "z": "a9aa710d27c4f7a6",
+        "z": "9e68b77404ffd339",
         "name": "Encender enchufe (HTTP)",
         "props": [
             {
                 "p": "payload"
+            },
+            {
+                "p": "deviceId",
+                "v": "3",
+                "vt": "str"
+            },
+            {
+                "p": "state",
+                "v": "true",
+                "vt": "bool"
             }
         ],
-        "payload": "{\"deviceId\":\"3\",\"state\":true}",
-        "payloadType": "json",
-        "x": 180,
-        "y": 100,
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 170,
+        "y": 400,
         "wires": [
             [
-                "24e1cae291495eea"
+                "f64b447a40972862"
             ]
         ]
     },
     {
-        "id": "b641bfaa42fd3fb6",
+        "id": "631b0415f8ec268a",
         "type": "inject",
-        "z": "a9aa710d27c4f7a6",
+        "z": "9e68b77404ffd339",
         "name": "Apagar enchufe (HTTP)",
         "props": [
             {
                 "p": "payload"
+            },
+            {
+                "p": "deviceId",
+                "v": "3",
+                "vt": "str"
+            },
+            {
+                "p": "state",
+                "v": "false",
+                "vt": "bool"
             }
         ],
-        "payload": "{\"deviceId\":\"3\",\"state\":false}",
-        "payloadType": "json",
-        "x": 180,
-        "y": 160,
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 160,
+        "y": 480,
         "wires": [
             [
-                "24e1cae291495eea"
+                "f64b447a40972862"
             ]
         ]
     },
     {
-        "id": "24e1cae291495eea",
+        "id": "f64b447a40972862",
         "type": "function",
-        "z": "a9aa710d27c4f7a6",
-        "name": "Guardar acción y preparar token",
+        "z": "9e68b77404ffd339",
+        "name": "Preparar llamada (Basic Auth - confirmado)",
+        "func": "// PATCH /api/v1/devices/{id}  con  Authorization: Basic <token>\n// deviceId y state los pone el propio nodo inject (msg.deviceId / msg.state).\n// Token fijo (el mismo capturado del tráfico real de la app) - no depende de\n// Environment Variables, así no hay que configurar nada aparte en Node-RED.\nconst BASIC_TOKEN = 'YWRtaW46ODk5YTgwNzI3ZGExZGYwOGIxNTEzNmE4YTg5OTUwNjMzYjFjODQ0NmQyZjYwZWFlZmUyNTExMWRmZjVmNTg5MQ==';\n\nmsg.headers = {\n    'Authorization': 'Basic ' + BASIC_TOKEN,\n    'Content-Type': 'application/json'\n};\nmsg.url = 'http://192.168.1.133:8000/api/v1/devices/' + msg.deviceId;\nmsg.payload = { socket: { default: { state: msg.state } } };\nreturn msg;",
+        "outputs": 1,
+        "x": 570,
+        "y": 300,
+        "wires": [
+            [
+                "48a7b8b04520bbc3"
+            ]
+        ]
+    },
+    {
+        "id": "d6e25cb7c39b4a5d",
+        "type": "function",
+        "z": "9e68b77404ffd339",
+        "d": true,
+        "name": "(desactivado) Guardar acción y preparar token",
         "func": "flow.set('pendingAction', msg.payload);\nmsg.headers = { 'Content-Type': 'application/json' };\nmsg.payload = {\n    grant_type: 'client_credentials',\n    client_id: env.get('SCHUKO_CLIENT_ID'),\n    client_secret: env.get('SCHUKO_CLIENT_SECRET')\n};\nreturn msg;",
         "outputs": 1,
-        "x": 440,
-        "y": 130,
+        "x": 420,
+        "y": 440,
         "wires": [
             [
-                "c513951c66e9d497"
+                "f913eb9408c4864d"
             ]
         ]
     },
     {
-        "id": "c513951c66e9d497",
+        "id": "f913eb9408c4864d",
         "type": "http request",
-        "z": "a9aa710d27c4f7a6",
-        "name": "POST /oauth/v2/token",
+        "z": "9e68b77404ffd339",
+        "d": true,
+        "name": "(desactivado) POST /oauth/v2/token",
         "method": "POST",
         "ret": "obj",
         "url": "https://auth-test.simon-cloud.com/oauth/v2/token",
-        "x": 700,
-        "y": 130,
+        "x": 680,
+        "y": 440,
         "wires": [
             [
-                "125b40aa3603e5b2"
+                "b9cdf1865c912423"
             ]
         ]
     },
     {
-        "id": "125b40aa3603e5b2",
+        "id": "b9cdf1865c912423",
         "type": "function",
-        "z": "a9aa710d27c4f7a6",
-        "name": "Preparar llamada al dispositivo",
+        "z": "9e68b77404ffd339",
+        "d": true,
+        "name": "(desactivado) Preparar llamada al dispositivo",
         "func": "const action = flow.get('pendingAction');\nmsg.headers = {\n    'Authorization': 'Bearer ' + msg.payload.access_token,\n    'Content-Type': 'application/json'\n};\nmsg.payload = { socket: { default: { state: action.state } } };\nmsg.url = 'http://192.168.1.133:8000/api/v1/devices/' + action.deviceId;\nreturn msg;",
         "outputs": 1,
-        "x": 460,
-        "y": 220,
+        "x": 440,
+        "y": 500,
         "wires": [
             [
-                "425ade1854c26f85"
+                "48a7b8b04520bbc3"
             ]
         ]
     },
     {
-        "id": "425ade1854c26f85",
+        "id": "48a7b8b04520bbc3",
         "type": "http request",
-        "z": "a9aa710d27c4f7a6",
+        "z": "9e68b77404ffd339",
         "name": "PATCH /devices/{id}",
         "method": "PATCH",
         "ret": "obj",
         "url": "",
-        "x": 730,
-        "y": 220,
+        "x": 760,
+        "y": 180,
         "wires": [
             [
-                "8a265b75bfc3a785"
+                "3c98ba25edcc130e",
+                "15da095ddbec32bd",
+                "c52651a4cce2b869"
             ]
         ]
     },
     {
-        "id": "8a265b75bfc3a785",
+        "id": "3c98ba25edcc130e",
         "type": "debug",
-        "z": "a9aa710d27c4f7a6",
+        "z": "9e68b77404ffd339",
         "name": "Respuesta HTTP",
         "active": true,
         "tosidebar": true,
         "console": false,
         "complete": "true",
-        "x": 970,
-        "y": 220,
+        "x": 1010,
+        "y": 180,
         "wires": []
     },
     {
-        "id": "1c016bb49c4ab943",
+        "id": "15da095ddbec32bd",
+        "type": "function",
+        "z": "9e68b77404ffd339",
+        "name": "Preparar anotación Grafana (éxito/fallo)",
+        "func": "// AJUSTA a tu Grafana: URL accesible desde Node-RED, y una API key/service\n// account token con permiso de escritura de anotaciones (Administration ->\n// Service accounts -> crea uno con rol Editor -> genera token).\nconst GRAFANA_URL = 'http://localhost:3000';\nconst GRAFANA_API_KEY = 'glsa_fwLD4Cx1OjbABpDu6BKJzaC7McF2uw9a_4669f828';\n\nconst code = msg.statusCode || 0;\nconst ok = code > 0 && code < 400;\nconst deviceId = msg.deviceId || 'unknown';\nconst action = msg.state ? 'on' : 'off'; // msg.state lo puso el inject (Encender=true / Apagar=false)\nconst combo = action + '_' + (ok ? 'success' : 'fail'); // on_success | on_fail | off_success | off_fail\n\nmsg.headers = {\n    'Content-Type': 'application/json',\n    'Authorization': 'Bearer ' + GRAFANA_API_KEY\n};\nmsg.url = GRAFANA_URL + '/api/annotations';\nmsg.payload = {\n    time: Date.now(),\n    tags: ['simonio', 'command', 'deviceId:' + deviceId, 'http', action, ok ? 'success' : 'fail', combo],\n    text: 'Comando HTTP PATCH (' + action + ') -> ' + code + (ok ? ' (éxito)' : ' (fallo)')\n};\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 340,
+        "y": 120,
+        "wires": [
+            [
+                "7e9d6b2e47458353"
+            ]
+        ]
+    },
+    {
+        "id": "7e9d6b2e47458353",
+        "type": "http request",
+        "z": "9e68b77404ffd339",
+        "name": "Guardar anotación en Grafana",
+        "method": "POST",
+        "ret": "obj",
+        "url": "",
+        "x": 600,
+        "y": 120,
+        "wires": [
+            [
+                "f6abf5ff54b3810d"
+            ]
+        ]
+    },
+    {
+        "id": "f6abf5ff54b3810d",
+        "type": "debug",
+        "z": "9e68b77404ffd339",
+        "name": "Resultado anotación Grafana",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "complete": "true",
+        "x": 850,
+        "y": 120,
+        "wires": []
+    },
+    {
+        "id": "c52651a4cce2b869",
+        "type": "function",
+        "z": "9e68b77404ffd339",
+        "name": "Actualizar contador (sin InfluxDB)",
+        "func": "// Sin base de datos externa: solo actualiza el contador en memoria de\n// Node-RED (contexto global). Lo expone luego el endpoint HTTP\n// GET /simonio/stats (nodos 'Endpoint estadísticas' más abajo en esta\n// misma pestaña) para que Grafana lo lea con el plugin Infinity.\n// AVISO: si reinicias Node-RED sin contexto persistente configurado\n// (settings.js -> contextStorage), estos contadores vuelven a 0.\nconst code = msg.statusCode || 0;\nconst ok = code > 0 && code < 400;\nconst deviceId = msg.deviceId || 'unknown';\nconst action = msg.state ? 'on' : 'off';\nconst result = ok ? 'success' : 'fail';\n\nconst key = 'simonio_count_' + deviceId + '_' + action + '_' + result;\nconst count = (global.get(key) || 0) + 1;\nglobal.set(key, count);\n\nreturn msg; // avisa al runner de la cola para que lance el siguiente caso",
+        "outputs": 1,
+        "x": 350,
+        "y": 180,
+        "wires": [
+            [
+                "runq02execnext"
+            ]
+        ]
+    },
+    {
+        "id": "fc638fd95e955aee",
+        "type": "http in",
+        "z": "9e68b77404ffd339",
+        "name": "Endpoint estadísticas",
+        "url": "/simonio/stats",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 110,
+        "y": 240,
+        "wires": [
+            [
+                "8ccc70c81c3e4463"
+            ]
+        ]
+    },
+    {
+        "id": "8ccc70c81c3e4463",
+        "type": "function",
+        "z": "9e68b77404ffd339",
+        "name": "Construir JSON de contadores",
+        "func": "// Recorre todas las claves 'simonio_count_...' del contexto global y las\n// convierte en una lista de objetos, para que Grafana (vía plugin Infinity)\n// pueda leerlas como filas de una tabla.\nconst keys = global.keys().filter(k => k.startsWith('simonio_count_'));\n\nconst rows = keys.map(k => {\n    // simonio_count_{deviceId}_{action}_{result}\n    const rest = k.substring('simonio_count_'.length);\n    const parts = rest.split('_');\n    const result = parts.pop();       // success | fail\n    const action = parts.pop();       // on | off\n    const deviceId = parts.join('_'); // por si el deviceId tuviera guiones bajos\n    return {\n        deviceId: deviceId,\n        action: action,\n        result: result,\n        count: global.get(k) || 0\n    };\n});\n\nmsg.statusCode = 200;\nmsg.headers = { 'Content-Type': 'application/json' };\nmsg.payload = rows;\nreturn msg;",
+        "outputs": 1,
+        "x": 370,
+        "y": 240,
+        "wires": [
+            [
+                "7c51d70c88cc8955"
+            ]
+        ]
+    },
+    {
+        "id": "7c51d70c88cc8955",
+        "type": "http response",
+        "z": "9e68b77404ffd339",
+        "name": "Responder JSON",
+        "statusCode": "",
+        "headers": {},
+        "x": 620,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "7b17a8d572410ea0",
+        "type": "comment",
+        "z": "9e68b77404ffd339",
+        "name": "Conexiones - framework automatización",
+        "info": "",
+        "x": 180,
+        "y": 40,
+        "wires": []
+    },
+    {
+        "id": "a204c88fb710df32",
+        "type": "comment",
+        "z": "9e68b77404ffd339",
+        "name": "Caso test 1 - Control switch",
+        "info": "",
+        "x": 140,
+        "y": 340,
+        "wires": []
+    },
+    {
+        "id": "c9cd19ed7d688b5d",
+        "type": "comment",
+        "z": "9e68b77404ffd339",
+        "name": "Caso test 2 - Número devices de instalación",
+        "info": "",
+        "x": 190,
+        "y": 560,
+        "wires": []
+    },
+    {
+        "id": "gd01devinject01",
+        "type": "inject",
+        "z": "9e68b77404ffd339",
+        "name": "Consultar num. dispositivos (GET)",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 190,
+        "y": 640,
+        "wires": [
+            [
+                "gd02devfnprep01"
+            ]
+        ]
+    },
+    {
+        "id": "gd02devfnprep01",
+        "type": "function",
+        "z": "9e68b77404ffd339",
+        "name": "Preparar consulta (GET /devices)",
+        "func": "// GET /api/v1/devices -> lista de dispositivos de la instalacion.\n// Mismo Basic Auth que el resto de llamadas HTTP (token fijo, confirmado\n// por trafico real de la app). No depende de Environment Variables.\nconst BASIC_TOKEN = 'YWRtaW46ODk5YTgwNzI3ZGExZGYwOGIxNTEzNmE4YTg5OTUwNjMzYjFjODQ0NmQyZjYwZWFlZmUyNTExMWRmZjVmNTg5MQ==';\n\nmsg.headers = {\n    'Authorization': 'Basic ' + BASIC_TOKEN\n};\nmsg.url = 'http://192.168.1.133:8000/api/v1/devices';\nreturn msg;",
+        "outputs": 1,
+        "x": 480,
+        "y": 640,
+        "wires": [
+            [
+                "gd03devhttpreq1"
+            ]
+        ]
+    },
+    {
+        "id": "gd03devhttpreq1",
+        "type": "http request",
+        "z": "9e68b77404ffd339",
+        "name": "GET /devices",
+        "method": "GET",
+        "ret": "obj",
+        "url": "",
+        "x": 700,
+        "y": 640,
+        "wires": [
+            [
+                "gd04devdebug001",
+                "gd05devgrafana1",
+                "gd06devcounter1"
+            ]
+        ]
+    },
+    {
+        "id": "gd04devdebug001",
+        "type": "debug",
+        "z": "9e68b77404ffd339",
+        "name": "Respuesta GET /devices",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "complete": "true",
+        "x": 950,
+        "y": 600,
+        "wires": []
+    },
+    {
+        "id": "gd05devgrafana1",
+        "type": "function",
+        "z": "9e68b77404ffd339",
+        "name": "Preparar anotacion Grafana (GET dispositivos)",
+        "func": "// Reutiliza el mismo Grafana que el resto de anotaciones: pega aqui la\n// misma GRAFANA_API_KEY que ya tienes puesta en el nodo\n// 'Preparar anotacion Grafana (exito/fallo)' para no duplicar el secreto\n// en dos sitios con valores distintos.\nconst GRAFANA_URL = 'http://localhost:3000';\nconst GRAFANA_API_KEY = 'PON_AQUI_TU_GRAFANA_API_KEY';\n\nconst code = msg.statusCode || 0;\nconst ok = code === 200; // aqui el exito se define simplemente como codigo 200\nconst count = Array.isArray(msg.payload) ? msg.payload.length\n    : (msg.payload && typeof msg.payload.count === 'number') ? msg.payload.count\n    : null;\n\nmsg.headers = {\n    'Content-Type': 'application/json',\n    'Authorization': 'Bearer ' + GRAFANA_API_KEY\n};\nmsg.url = GRAFANA_URL + '/api/annotations';\nmsg.payload = {\n    time: Date.now(),\n    tags: ['simonio', 'command', 'http', 'get_devices', ok ? 'success' : 'fail'],\n    text: 'GET /devices -> ' + code + (count !== null ? ' (' + count + ' dispositivos)' : '') + (ok ? ' (exito)' : ' (fallo)')\n};\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 520,
+        "y": 720,
+        "wires": [
+            [
+                "7e9d6b2e47458353"
+            ]
+        ]
+    },
+    {
+        "id": "gd06devcounter1",
+        "type": "function",
+        "z": "9e68b77404ffd339",
+        "name": "Actualizar contador (GET dispositivos)",
+        "func": "// Mismo mecanismo en memoria (sin InfluxDB) que el resto de contadores,\n// expuesto tambien por GET /simonio/stats. Aqui el 'ok' es simplemente\n// que el codigo de estado HTTP sea 200.\nconst code = msg.statusCode || 0;\nconst ok = code === 200;\nconst result = ok ? 'success' : 'fail';\n\nconst key = 'simonio_count_installation_getDevices_' + result;\nconst count = (global.get(key) || 0) + 1;\nglobal.set(key, count);\n\nreturn msg; // avisa al runner de la cola para que lance el siguiente caso",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 510,
+        "y": 780,
+        "wires": [
+            [
+                "runq02execnext"
+            ]
+        ]
+    },
+    {
+        "id": "runq00comment",
+        "type": "comment",
+        "z": "9e68b77404ffd339",
+        "name": "Bateria de pruebas dirigida por datos (cola generica)",
+        "info": "Para anadir un caso de prueba nuevo NO hace falta anadir ningun nodo: basta con anadir una entrada al array dentro del nodo 'Cargar cola de pruebas'. Solo hacen falta nodos nuevos cuando el caso requiere una llamada realmente distinta (un endpoint que aun no exista en el flujo), y en ese caso solo una vez, no por cada ejecucion.",
+        "x": 260,
+        "y": 900,
+        "wires": []
+    },
+    {
+        "id": "runq01inject01",
+        "type": "inject",
+        "z": "9e68b77404ffd339",
+        "name": "Ejecutar bateria de pruebas",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 150,
+        "y": 940,
+        "wires": [
+            [
+                "runq01bcargacola"
+            ]
+        ]
+    },
+    {
+        "id": "runq01bcargacola",
+        "type": "function",
+        "z": "9e68b77404ffd339",
+        "name": "Cargar cola de pruebas",
+        "func": "// UNICO sitio que se toca para anadir/quitar/reordenar casos de prueba.\n// Cada objeto describe un caso; 'tipo' decide como se enruta mas abajo.\nflow.set('cola_pruebas', [\n    { tipo: 'encender',        deviceId: '3' },\n    { tipo: 'apagar',          deviceId: '3' },\n    { tipo: 'get_dispositivos' }\n    // { tipo: 'encender', deviceId: '7' },  <- ejemplo: mismo caso, otro dispositivo\n]);\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 400,
+        "y": 940,
+        "wires": [
+            [
+                "runq02execnext"
+            ]
+        ]
+    },
+    {
+        "id": "runq02execnext",
+        "type": "function",
+        "z": "9e68b77404ffd339",
+        "name": "Ejecutar siguiente caso (runner)",
+        "func": "// Nodo generico: saca el siguiente caso de la cola y lo enruta.\n// Se llama a si mismo (via el Switch + el final de cada caso) hasta\n// vaciar la cola. No requiere ningun inject ni nodo nuevo por caso.\nconst cola = flow.get('cola_pruebas') || [];\n\nif (cola.length === 0) {\n    node.status({ fill: 'green', shape: 'dot', text: 'bateria completada' });\n    return null;\n}\n\nconst caso = cola.shift();\nflow.set('cola_pruebas', cola);\nnode.status({ fill: 'blue', shape: 'dot', text: 'ejecutando: ' + caso.tipo + ' (' + cola.length + ' restantes)' });\n\nmsg.tipo = caso.tipo;\nmsg.deviceId = caso.deviceId;\nmsg.state = caso.tipo === 'encender' ? true : caso.tipo === 'apagar' ? false : undefined;\nreturn msg;",
+        "outputs": 1,
+        "x": 650,
+        "y": 940,
+        "wires": [
+            [
+                "runq03switch01"
+            ]
+        ]
+    },
+    {
+        "id": "runq03switch01",
+        "type": "switch",
+        "z": "9e68b77404ffd339",
+        "name": "Enrutar por tipo de caso",
+        "property": "tipo",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "encender",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "apagar",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "get_dispositivos",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 3,
+        "x": 890,
+        "y": 940,
+        "wires": [
+            [
+                "f64b447a40972862"
+            ],
+            [
+                "f64b447a40972862"
+            ],
+            [
+                "gd02devfnprep01"
+            ]
+        ]
+    },
+    {
+        "id": "74bf97adf6c41306",
         "type": "mqtt in",
-        "z": "cd61d7d397bb865f",
+        "z": "43cc3a58d352a032",
         "name": "Descubrir topics (#)",
-        "topic": "simon/things/e45f01e7626f/#",
+        "topic": "#",
         "qos": "0",
         "datatype": "auto",
         "broker": "mqtt_broker_simon",
-        "nl": false,
-        "rap": false,
         "inputs": 0,
         "x": 200,
         "y": 100,
         "wires": [
             [
-                "7837ab81f12f37e3"
+                "b703d2c001ab67a9"
             ]
         ]
     },
     {
-        "id": "7837ab81f12f37e3",
+        "id": "b703d2c001ab67a9",
         "type": "debug",
-        "z": "cd61d7d397bb865f",
+        "z": "43cc3a58d352a032",
         "name": "Topics descubiertos",
         "active": true,
         "tosidebar": true,
@@ -313,71 +816,271 @@
         "wires": []
     },
     {
-        "id": "7baa837f5799284a",
+        "id": "395ba736f754b655",
         "type": "inject",
-        "z": "cd61d7d397bb865f",
+        "z": "43cc3a58d352a032",
         "name": "Encender enchufe (MQTT)",
         "props": [
             {
                 "p": "payload"
+            },
+            {
+                "p": "deviceId",
+                "v": "3",
+                "vt": "str"
+            },
+            {
+                "p": "state",
+                "v": "true",
+                "vt": "bool"
             }
         ],
-        "payload": "{\"deviceId\":\"3\",\"state\":true}",
-        "payloadType": "json",
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
         "x": 190,
         "y": 220,
         "wires": [
             [
-                "3bbccd1215f50077"
+                "f578617f4bd20180"
             ]
         ]
     },
     {
-        "id": "f9b9f20c812accd2",
+        "id": "03f5eed110ec3419",
         "type": "inject",
-        "z": "cd61d7d397bb865f",
+        "z": "43cc3a58d352a032",
         "name": "Apagar enchufe (MQTT)",
         "props": [
             {
                 "p": "payload"
+            },
+            {
+                "p": "deviceId",
+                "v": "3",
+                "vt": "str"
+            },
+            {
+                "p": "state",
+                "v": "false",
+                "vt": "bool"
             }
         ],
-        "payload": "{\"deviceId\":\"3\",\"state\":false}",
-        "payloadType": "json",
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
         "x": 190,
         "y": 280,
         "wires": [
             [
-                "3bbccd1215f50077"
+                "f578617f4bd20180"
             ]
         ]
     },
     {
-        "id": "3bbccd1215f50077",
+        "id": "f578617f4bd20180",
         "type": "function",
-        "z": "cd61d7d397bb865f",
-        "name": "Preparar topic y payload (real)",
-        "func": "// Topic real descubierto en 'Descubrir topics' (#) al encender/apagar el enchufe\n// desde la app oficial de Simon iO. Es el mismo topic para reportar estado (telemetría)\n// que el que parece usarse para aplicar el cambio:\n//   simon/telemetry/{idGateway}/{deviceId}/update\n//\n// idGateway = 'e45f01e7626f' -> parece el identificador del hub/gateway (formato tipo MAC),\n// NO del enchufe en sí. Si tienes más de un hub, confirma que este ID es el mismo para\n// todos tus dispositivos antes de darlo por fijo; si no, habría que mapear deviceId -> idGateway.\nconst GATEWAY_ID = 'e45f01e7626f';\n\nmsg.topic = 'simon/telemetry/' + GATEWAY_ID + '/' + msg.payload.deviceId + '/update';\nmsg.payload = JSON.stringify({\n    deviceId: msg.payload.deviceId,\n    socket: { default: { state: msg.payload.state } }\n    // Nota: el mensaje capturado también traía un campo \"timestamp\" (34361.916663164),\n    // pero es un contador de uptime interno del dispositivo, no una hora real - no lo\n    // generamos nosotros. Prueba primero sin él; si el backend lo exige, avisa para añadirlo.\n});\nreturn msg;",
+        "z": "43cc3a58d352a032",
+        "name": "Preparar topic y payload",
+        "func": "// Siempre se publica en el topic fijo del gateway:\n//   simon/things/e45f01e7626f/apischuko\n// deviceId y state los pone el propio nodo inject (msg.deviceId / msg.state).\n// Token fijo (el mismo capturado del tráfico real de la app) - no depende de\n// Environment Variables, así no hay que configurar nada aparte en Node-RED.\nconst GATEWAY_ID = 'e45f01e7626f';\nconst BASIC_TOKEN = 'YWRtaW46ODk5YTgwNzI3ZGExZGYwOGIxNTEzNmE4YTg5OTUwNjMzYjFjODQ0NmQyZjYwZWFlZmUyNTExMWRmZjVmNTg5MQ==';\nconst corrId = msg._msgid;\n\n// Guardamos qué acción era (on/off) para poder etiquetarla cuando llegue la\n// confirmación (esa llega como mensaje NUEVO por MQTT, sin msg.state).\nflow.set('mqtt_pending_' + corrId, { deviceId: msg.deviceId, state: msg.state });\n\nmsg.topic = 'simon/things/' + GATEWAY_ID + '/apischuko';\nmsg.payload = JSON.stringify({\n    path: '/api/v1/devices/' + msg.deviceId,\n    method: 'PATCH',\n    response_topic: 'simon/things/' + GATEWAY_ID + '/gtg/devices/' + msg.deviceId + '/' + corrId,\n    headers: {\n        'Content-Type': 'application/json',\n        'Authorization': 'Basic ' + BASIC_TOKEN\n    },\n    data: JSON.stringify({ socket: { default: { state: msg.state } } })\n});\nreturn msg;",
         "outputs": 1,
         "x": 470,
         "y": 250,
         "wires": [
             [
-                "a60a57cef5e00b25"
+                "7306aeb5f94e03fe"
             ]
         ]
     },
     {
-        "id": "a60a57cef5e00b25",
+        "id": "7306aeb5f94e03fe",
         "type": "mqtt out",
-        "z": "cd61d7d397bb865f",
+        "z": "43cc3a58d352a032",
         "name": "Publicar comando",
         "topic": "",
         "qos": "0",
         "retain": "false",
         "broker": "mqtt_broker_simon",
-        "x": 730,
+        "x": 750,
         "y": 250,
+        "wires": []
+    },
+    {
+        "id": "0740a05dea9b2d2c",
+        "type": "mqtt in",
+        "z": "43cc3a58d352a032",
+        "name": "Confirmación por MQTT (response_topic)",
+        "topic": "simon/things/e45f01e7626f/gtg/devices/+/+",
+        "qos": "0",
+        "datatype": "auto",
+        "broker": "mqtt_broker_simon",
+        "inputs": 0,
+        "x": 230,
+        "y": 340,
+        "wires": [
+            [
+                "202cd21e3d4d4e31",
+                "1b6530859af395b8",
+                "4f3ccb0233374174"
+            ]
+        ]
+    },
+    {
+        "id": "202cd21e3d4d4e31",
+        "type": "debug",
+        "z": "43cc3a58d352a032",
+        "name": "Confirmación comando",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "complete": "true",
+        "x": 500,
+        "y": 340,
+        "wires": []
+    },
+    {
+        "id": "1b6530859af395b8",
+        "type": "function",
+        "z": "43cc3a58d352a032",
+        "name": "Preparar anotación Grafana (éxito/fallo)",
+        "func": "// AJUSTA a tu Grafana (misma URL/API key que en la pestaña HTTP):\nconst GRAFANA_URL = 'http://localhost:3000';\nconst GRAFANA_API_KEY = 'pon-aqui-tu-api-key-de-grafana';\n\n// topic: simon/things/{gw}/gtg/devices/{deviceId}/{corrId}\n// split('/') -> [0]simon [1]things [2]gw [3]gtg [4]devices [5]deviceId [6]corrId\nconst parts = msg.topic.split('/');\nconst deviceId = parts[5] || 'unknown';\nconst corrId = parts[6];\nconst data = typeof msg.payload === 'string' ? JSON.parse(msg.payload) : msg.payload;\nconst code = parseInt(data.code, 10) || 0;\nconst ok = code > 0 && code < 400;\n\n// Recuperamos si el comando original era encender/apagar (lo guardó\n// 'Preparar topic y payload' al publicar, usando el mismo corrId).\n// (no borramos la entrada de flow context aquí - también la lee\n// 'Preparar punto InfluxDB (éxito/fallo)' en paralelo)\nconst pending = flow.get('mqtt_pending_' + corrId);\nconst action = pending ? (pending.state ? 'on' : 'off') : 'unknown';\nconst combo = action + '_' + (ok ? 'success' : 'fail');\n\nmsg.headers = {\n    'Content-Type': 'application/json',\n    'Authorization': 'Bearer ' + GRAFANA_API_KEY\n};\nmsg.url = GRAFANA_URL + '/api/annotations';\nmsg.payload = {\n    time: Date.now(),\n    tags: ['simonio', 'command', 'deviceId:' + deviceId, 'mqtt', action, ok ? 'success' : 'fail', combo],\n    text: 'Comando MQTT PATCH (' + action + ') -> ' + code + (ok ? ' (éxito)' : ' (fallo)')\n};\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 480,
+        "y": 400,
+        "wires": [
+            [
+                "f9024157ecd6da0f"
+            ]
+        ]
+    },
+    {
+        "id": "f9024157ecd6da0f",
+        "type": "http request",
+        "z": "43cc3a58d352a032",
+        "name": "Guardar anotación en Grafana",
+        "method": "POST",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 740,
+        "y": 400,
+        "wires": [
+            [
+                "15d5cca223e46fcb"
+            ]
+        ]
+    },
+    {
+        "id": "15d5cca223e46fcb",
+        "type": "debug",
+        "z": "43cc3a58d352a032",
+        "name": "Resultado anotación Grafana",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "complete": "true",
+        "x": 990,
+        "y": 400,
+        "wires": []
+    },
+    {
+        "id": "4f3ccb0233374174",
+        "type": "function",
+        "z": "43cc3a58d352a032",
+        "name": "Actualizar contador (sin InfluxDB)",
+        "func": "// Sin base de datos externa: solo actualiza el contador en memoria de\n// Node-RED (contexto global). Lo expone el endpoint HTTP GET /simonio/stats\n// (pestaña HTTP, nodos 'Endpoint estadísticas') para que Grafana lo lea con\n// el plugin Infinity.\n\n// topic: simon/things/{gw}/gtg/devices/{deviceId}/{corrId}\nconst parts = msg.topic.split('/');\nconst deviceId = parts[5] || 'unknown';\nconst corrId = parts[6];\nconst data = typeof msg.payload === 'string' ? JSON.parse(msg.payload) : msg.payload;\nconst code = parseInt(data.code, 10) || 0;\nconst ok = code > 0 && code < 400;\nconst result = ok ? 'success' : 'fail';\n\nconst pending = flow.get('mqtt_pending_' + corrId);\nconst action = pending ? (pending.state ? 'on' : 'off') : 'unknown';\n\n// Comparte contador con la pestaña HTTP (misma clave), para tener el total\n// combinado HTTP+MQTT; si prefieres separarlos, añade '_mqtt' a la clave.\nconst key = 'simonio_count_' + deviceId + '_' + action + '_' + result;\nconst count = (global.get(key) || 0) + 1;\nglobal.set(key, count);\n\nreturn null;",
+        "outputs": 1,
+        "x": 500,
+        "y": 340,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "ee6a3339bc33d0ce",
+        "type": "mqtt in",
+        "z": "43cc3a58d352a032",
+        "name": "Telemetría (estado real)",
+        "topic": "simon/telemetry/e45f01e7626f/+/update",
+        "qos": "0",
+        "datatype": "auto",
+        "broker": "mqtt_broker_simon",
+        "inputs": 0,
+        "x": 210,
+        "y": 460,
+        "wires": [
+            [
+                "a6d80314d931c997"
+            ]
+        ]
+    },
+    {
+        "id": "a6d80314d931c997",
+        "type": "function",
+        "z": "43cc3a58d352a032",
+        "name": "Preparar anotación Grafana (estado)",
+        "func": "// AJUSTA a tu Grafana (misma URL/API key que en la pestaña HTTP):\nconst GRAFANA_URL = 'http://localhost:3000';\nconst GRAFANA_API_KEY = 'pon-aqui-tu-api-key-de-grafana';\n\n// topic: simon/telemetry/{gw}/{deviceId}/update\nconst deviceId = msg.topic.split('/')[3] || 'unknown';\nconst data = typeof msg.payload === 'string' ? JSON.parse(msg.payload) : msg.payload;\nconst state = data.socket && data.socket.default ? data.socket.default.state : null;\nif (state === null) { return null; }\n\nmsg.headers = {\n    'Content-Type': 'application/json',\n    'Authorization': 'Bearer ' + GRAFANA_API_KEY\n};\nmsg.url = GRAFANA_URL + '/api/annotations';\nmsg.payload = {\n    time: Date.now(),\n    tags: ['simonio', 'state', 'deviceId:' + deviceId, state ? 'on' : 'off'],\n    text: 'Enchufe ' + deviceId + ' -> ' + (state ? 'ENCENDIDO' : 'APAGADO')\n};\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 480,
+        "y": 460,
+        "wires": [
+            [
+                "1d7f689ac0e48db6"
+            ]
+        ]
+    },
+    {
+        "id": "1d7f689ac0e48db6",
+        "type": "http request",
+        "z": "43cc3a58d352a032",
+        "name": "Guardar anotación en Grafana",
+        "method": "POST",
+        "ret": "obj",
+        "url": "",
+        "x": 740,
+        "y": 460,
+        "wires": [
+            [
+                "4b644a428a92b60a"
+            ]
+        ]
+    },
+    {
+        "id": "4b644a428a92b60a",
+        "type": "debug",
+        "z": "43cc3a58d352a032",
+        "name": "Resultado anotación Grafana",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "complete": "true",
+        "x": 990,
+        "y": 460,
         "wires": []
     }
 ]
